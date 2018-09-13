@@ -6,8 +6,8 @@ from random import randint
 #load MNIST data
 MNIST_data = h5py.File('MNISTdata.hdf5', 'r')
 x_train = np.float32(MNIST_data['x_train'][:] )
-X = np.array(x_train)
-print(X.shape)
+# X = np.array(x_train)
+# print(X.shape)
 y_train = np.int32(np.array(MNIST_data['y_train'][:,0]))
 print('x_train', x_train, x_train.shape)
 print('y_train', y_train, y_train.shape)
@@ -25,11 +25,11 @@ num_inputs = 28*28
 num_outputs = 10
 model = {}
 
-model['K'] = np.random.randn(3,3) / np.sqrt(num_inputs)
+model['K'] = np.random.randn(3,3,5) / np.sqrt(num_inputs)
 model_grads = copy.deepcopy(model['K'])
-model['Z'] = np.random.randn(26,26) / np.sqrt(num_inputs)
-model['H1'] = np.random.randn(26,26) / np.sqrt(num_inputs)
-model['W1'] = np.random.randn(num_outputs, 26,26) / np.sqrt(num_inputs)
+model['Z'] = np.random.randn(26,26,5) / np.sqrt(num_inputs)
+model['H1'] = np.random.randn(26,26,5) / np.sqrt(num_inputs)
+model['W1'] = np.random.randn(num_outputs, 26,26,5) / np.sqrt(num_inputs)
 model['b1'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
 model['U1'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
 model['U2'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
@@ -61,53 +61,46 @@ def ReLUp(Z):
     return ans
 
 def forward(x,y, model):
-    for i in range(24):
-        for j in range(24):
-            model['Z'][i, j] = np.tensordot(model['K'], x[i:i + 3, j:j + 3])
-    model['H1'] = ReLU(model['Z'])
+    Z1 = np.random.randn(26,26,5) / np.sqrt(num_inputs)
+    for p in range(5):
+        for i in range(24):
+            for j in range(24):
+                Z1[i, j, p] = np.tensordot(model['K'][:,:,p], x[i:i + 3, j:j + 3])
+    # model['Z'] = np.sum(Z1, axis=0).reshape(26,26)
 
+    model['H1'] = ReLU(model['Z'])
+    # print('H1',model['H1'].shape)
+    # print('W1[i]',model['W1'][0,:,:,:].T.shape)
     for i in range(10):
-        x_sum2 = np.tensordot(model['W1'][i,:,:], model['H1']) #???????????
+        x_sum2 = np.tensordot(model['W1'][i,:,:,:], model['H1'],((0,1,2),(0,1,2,))) #???????????
         model['U1'][0,i] = x_sum2 + model['b1'][0,i]
-    model['H2'] = ReLU(model['U1'])
-    for i in range(10):
-        model['U2'][0,i] = np.dot(model['W2'][i,:], model['H2'].T) + model['b2'][0,i]
-    f = softmax_function(model['U2'])
+
+    f = softmax_function(model['U1'])
     return f
 
 def backward(x,y,f, model, model_grads):
     pu = f
     pu[0,y] = pu[0,y] - 1
-    pb2 = pu
-    pw2 = np.dot(pu.T, model['H2'])
-    dsigma = ReLUp(model['U1'])
-    ph2 = np.dot(pu, model['W2'].T)
-    pb1 = ph2 * dsigma
-    # pw1 = np.dot(pb1, x)
-    # pw11 = np.dot(pu, model['W2'].T) * dsigma
-    pw11 = pb1
-    pw1 = np.random.randn(10, 26,26) / np.sqrt(num_inputs)
-    for i in range(10):
-        pw1[i,:,:] = pw11[0,i] * model['H1'].reshape(1,26,26)
-    pw1 = np.sum(pw1, axis=0).reshape(26,26)
-    ph1 = np.random.randn(10, 26,26) / np.sqrt(num_inputs)
-    for i in range(10):
-        ph1[i,:,:] = pw11[0,i] * model['W1'][i,:,:]
-    ph1 = np.sum(ph1, axis=0).reshape(26,26)
-    dsigma1 = ReLUp(model['Z'])
-    pk = np.random.randn(3,3) / np.sqrt(num_inputs)
-    for i in range(3):
-        for j in range(3):
-            pk1 = np.dot(ph1, dsigma1.T) # ?.????
-            pk[i,j] = np.tensordot(pk1, X[i:i+26,j:j+26])
+    pb1 = pu
+    pw1 = np.tensordot(pu.T, model['H1'].reshape(1,26,26,5),(1,0))
+    # print('pw1',pw1.shape)
+    dsigma = ReLUp(model['Z'])
+    ph1 = np.tensordot(pu, model['W1'],(1,0)).reshape(26,26,5)
+    # print('ph1.shape',ph1.shape)
+    pb2 = ph1 * dsigma
+    # print('pb2',pb2.shape)
+    pk = np.random.randn(3,3,5) / np.sqrt(num_inputs)
+    for p in range(5):
+        for i in range(3):
+            for j in range(3):
+                # pk1 = np.dot(ph1, dsigma1.T) # ?.????
+                pk[i,j,p] = np.tensordot(pb2[:,:,p], x[i:i+26,j:j+26])
 
-
-
-    return pw2, pb2, pb1, pw1, pk
+    return pw1, pb1, pk
 import time
 time1 = time.time()
-LR = 0.01
-num_epochs = 20
+LR = 0.1
+num_epochs = 10
 for epochs in range(num_epochs):
     #Learning rate schedule
     total_correct = 0
@@ -120,15 +113,14 @@ for epochs in range(num_epochs):
         if (prediction == y):
             total_correct += 1
 
-        pc, pb2, pb1, pw1, pk = backward(x,y,p, model, model_grads)
-        model['W2'] = model['W2'] - LR*pc
-        model['b2'] = model['b2'] - LR*pb2
+        pw1, pb1, pk = backward(x,y,p, model, model_grads)
+
         model['b1'] = model['b1'] - LR*pb1.T
         model['W1'] = model['W1'] - LR*pw1
         model['K'] = model['K'] - LR*pk
 
     # print(epochs)
-        if n%1000 == 0:
+        if n%10000 == 0:
             print(total_correct/np.float(len(x_train) ) )
 time2 = time.time()
 print(time2-time1)
