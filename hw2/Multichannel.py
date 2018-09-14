@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+
 import time
 import copy
 from random import randint
@@ -25,22 +26,13 @@ num_inputs = 28*28
 num_outputs = 10
 model = {}
 
-model['K'] = np.random.randn(3,3,5) / np.sqrt(num_inputs)
+model['K'] = np.random.randn(3,3,5) / 10
 model_grads = copy.deepcopy(model['K'])
 model['Z'] = np.random.randn(26,26,5) / np.sqrt(num_inputs)
 model['H1'] = np.random.randn(26,26,5) / np.sqrt(num_inputs)
 model['W1'] = np.random.randn(num_outputs, 26,26,5) / np.sqrt(num_inputs)
 model['b1'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
 model['U1'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
-model['U2'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
-model['W2'] = np.random.randn(num_outputs, num_outputs) / np.sqrt(num_inputs)
-model['b2'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
-
-model['pu2'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
-model['pb2'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
-model['pw2'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
-model['pb1'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
-model['pb2'] = np.random.randn(1, num_outputs) / np.sqrt(num_inputs)
 
 
 def softmax_function(z):
@@ -61,18 +53,14 @@ def ReLUp(Z):
     return ans
 
 def forward(x,y, model):
-    Z1 = np.random.randn(26,26,5) / np.sqrt(num_inputs)
     for p in range(5):
-        for i in range(24):
-            for j in range(24):
-                Z1[i, j, p] = np.tensordot(model['K'][:,:,p], x[i:i + 3, j:j + 3])
-    # model['Z'] = np.sum(Z1, axis=0).reshape(26,26)
+        for i in range(26):
+            for j in range(26):
+                model['Z'][i, j, p] = np.tensordot(model['K'][:,:,p], x[i:i + 3, j:j + 3])
 
     model['H1'] = ReLU(model['Z'])
-    # print('H1',model['H1'].shape)
-    # print('W1[i]',model['W1'][0,:,:,:].T.shape)
     for i in range(10):
-        x_sum2 = np.tensordot(model['W1'][i,:,:,:], model['H1'],((0,1,2),(0,1,2,))) #???????????
+        x_sum2 = np.tensordot(model['W1'][i,:,:,:], model['H1'],((0,1,2),(0,1,2,)))
         model['U1'][0,i] = x_sum2 + model['b1'][0,i]
 
     f = softmax_function(model['U1'])
@@ -83,24 +71,21 @@ def backward(x,y,f, model, model_grads):
     pu[0,y] = pu[0,y] - 1
     pb1 = pu
     pw1 = np.tensordot(pu.T, model['H1'].reshape(1,26,26,5),(1,0))
-    # print('pw1',pw1.shape)
     dsigma = ReLUp(model['Z'])
     ph1 = np.tensordot(pu, model['W1'],(1,0)).reshape(26,26,5)
-    # print('ph1.shape',ph1.shape)
     pb2 = ph1 * dsigma
-    # print('pb2',pb2.shape)
     pk = np.random.randn(3,3,5) / np.sqrt(num_inputs)
     for p in range(5):
         for i in range(3):
             for j in range(3):
-                # pk1 = np.dot(ph1, dsigma1.T) # ?.????
                 pk[i,j,p] = np.tensordot(pb2[:,:,p], x[i:i+26,j:j+26])
+
 
     return pw1, pb1, pk
 import time
 time1 = time.time()
-LR = 0.1
-num_epochs = 10
+LR = 0.0009
+num_epochs = 7
 for epochs in range(num_epochs):
     #Learning rate schedule
     total_correct = 0
@@ -120,8 +105,8 @@ for epochs in range(num_epochs):
         model['K'] = model['K'] - LR*pk
 
     # print(epochs)
-        if n%10000 == 0:
-            print(total_correct/np.float(len(x_train) ) )
+    #     if n%10000 == 0:
+    print(total_correct/np.float(len(x_train) ) )
 time2 = time.time()
 print(time2-time1)
 ######################################################
@@ -129,7 +114,7 @@ print(time2-time1)
 total_correct = 0
 for n in range( len(x_test)):
     y = y_test[n]
-    x = x_test[n][:]
+    x = x_test[n][:].reshape(28,28)
     p = forward(x, y, model)
     prediction = np.argmax(p)
     if (prediction == y):
