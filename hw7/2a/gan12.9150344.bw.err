@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "RNN_sentiment_analysis.py", line 148, in <module>
+    loss, pred = model(x_input,target)
+  File "/mnt/bwpy/single/usr/lib/python3.5/site-packages/torch/nn/modules/module.py", line 477, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/mnt/c/scratch/training/tra411/deep-learning/hw7/2a/RNN_model.py", line 80, in forward
+    embed = self.embedding(x) # batch_size, time_steps, features
+  File "/mnt/bwpy/single/usr/lib/python3.5/site-packages/torch/nn/modules/module.py", line 477, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/mnt/bwpy/single/usr/lib/python3.5/site-packages/torch/nn/modules/sparse.py", line 110, in forward
+    self.norm_type, self.scale_grad_by_freq, self.sparse)
+  File "/mnt/bwpy/single/usr/lib/python3.5/site-packages/torch/nn/functional.py", line 1110, in embedding
+    return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)
+TypeError: embedding(): argument 'indices' (position 2) must be Tensor, not list

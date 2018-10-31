@@ -1,0 +1,21 @@
+----------------------------------------
+Begin Torque Prologue on nid25255
+at Sun Oct 28 00:26:40 CDT 2018
+Job Id:			9150344.bw
+Username:		tra411
+Group:			TRAIN_bauh
+Job name:		gan12
+Requested resources:	nodes=1:ppn=16:xk,walltime=48:00:00,neednodes=1:ppn=16:xk
+Queue:			normal
+Account:		bauh
+End Torque Prologue:  0.232 elapsed
+----------------------------------------
+
+
+
+
+0 54.37 0.7863 56.6662
+1 57.67 0.6712 55.4789
+2 59.68 0.6605 55.4855
+Application 70428261 exit codes: 1
+Application 70428261 resources: utime ~173s, stime ~32s, Rss ~1526212, inblocks ~352325, outblocks ~6
