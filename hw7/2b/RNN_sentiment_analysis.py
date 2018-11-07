@@ -13,11 +13,11 @@ import io
 
 from RNN_model import RNN_model
 
-#imdb_dictionary = np.load('../preprocessed_data/imdb_dictionary.npy')
-vocab_size = 8000
+glove_embeddings = np.load('../preprocessed_data/glove_embeddings.npy')
+vocab_size = 100000
 
 x_train = []
-with io.open('../preprocessed_data/imdb_train.txt','r',encoding='utf-8') as f:
+with io.open('../preprocessed_data/imdb_train_glove.txt','r',encoding='utf-8') as f:
     lines = f.readlines()
 for line in lines:
     line = line.strip()
@@ -32,7 +32,7 @@ y_train = np.zeros((25000,))
 y_train[0:12500] = 1
 
 x_test = []
-with io.open('../preprocessed_data/imdb_test.txt','r',encoding='utf-8') as f:
+with io.open('../preprocessed_data/imdb_test_glove.txt','r',encoding='utf-8') as f:
     lines = f.readlines()
 for line in lines:
     line = line.strip()
@@ -47,12 +47,12 @@ y_test[0:12500] = 1
 
 vocab_size += 1
 
-model = RNN_model(vocab_size,500)
+model = RNN_model(500)
 model.cuda()
 
 # opt = 'sgd'
 # LR = 0.01
-opt = 'adam'
+opt = 'sgd'
 LR = 0.001
 if(opt=='adam'):
     optimizer = optim.Adam(model.parameters(), lr=LR)
@@ -61,7 +61,7 @@ elif(opt=='sgd'):
 
 
 # Define the optimizer with some desired learning rate.
-batch_size = 200
+batch_size = 200 
 no_of_epochs = 20
 L_Y_train = len(y_train)
 L_Y_test = len(y_test)
@@ -88,7 +88,7 @@ for epoch in range(no_of_epochs):
 
     for i in range(0, L_Y_train, batch_size):
         x_input2 = [x_train[j] for j in I_permutation[i:i+batch_size]]
-        sequence_length = 5
+        sequence_length = 100
         x_input = np.zeros((batch_size,sequence_length),dtype=np.int)
         for j in range(batch_size):
             x = np.asarray(x_input2[j])
@@ -98,9 +98,10 @@ for epoch in range(no_of_epochs):
             else:
                 start_index = np.random.randint(sl-sequence_length+1)
                 x_input[j,:] = x[start_index:(start_index+sequence_length)]
+        x_input = glove_embeddings[x_input]
         y_input = y_train[I_permutation[i:i+batch_size]]
     
-        data = Variable(torch.LongTensor(x_input)).cuda()
+        data = Variable(torch.FloatTensor(x_input)).cuda()
         target = Variable(torch.FloatTensor(y_input)).cuda()
     
         optimizer.zero_grad()
@@ -140,7 +141,7 @@ for epoch in range(no_of_epochs):
     if((epoch+1)%3)==0:
         for i in range(0, L_Y_test, batch_size):
             x_input2 = [x_test[j] for j in I_permutation[i:i+batch_size]]
-            sequence_length = 5
+            sequence_length = 100
             x_input = np.zeros((batch_size,sequence_length),dtype=np.int)
             for j in range(batch_size):
                 x = np.asarray(x_input2[j])
@@ -150,9 +151,10 @@ for epoch in range(no_of_epochs):
                 else:
                     start_index = np.random.randint(sl-sequence_length+1)
                     x_input[j,:] = x[start_index:(start_index+sequence_length)]
+            x_input = glove_embeddings[x_input]
             y_input = y_train[I_permutation[i:i+batch_size]]
     
-            data = Variable(torch.LongTensor(x_input)).cuda()
+            data = Variable(torch.FloatTensor(x_input)).cuda()
             target = Variable(torch.FloatTensor(y_input)).cuda()
     
             with torch.no_grad():
@@ -166,6 +168,7 @@ for epoch in range(no_of_epochs):
             epoch_counter += batch_size    
 
         epoch_acc /= epoch_counter
+        epoch_loss /= (epoch_counter/batch_size)
     
         test_accu.append(epoch_acc)
     
@@ -174,8 +177,8 @@ for epoch in range(no_of_epochs):
     
         print("  ", "%.2f" % (epoch_acc*100.0), "%.4f" % epoch_loss)
 
-torch.save(model,'rnn.model')
+torch.save(model,'rnn3.model')
 data = [train_loss,train_accu,test_accu]
 data = np.asarray(data)
-np.save('data.npy',data)
+np.save('data3.npy',data)
 

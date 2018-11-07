@@ -1,0 +1,29 @@
+----------------------------------------
+Begin Torque Prologue on nid25328
+at Sat Oct 27 21:16:05 CDT 2018
+Job Id:			9150233.bw
+Username:		tra411
+Group:			TRAIN_bauh
+Job name:		gan12
+Requested resources:	nodes=1:ppn=16:xk,walltime=48:00:00,neednodes=1:ppn=16:xk
+Queue:			normal
+Account:		bauh
+End Torque Prologue:  0.128 elapsed
+----------------------------------------
+
+
+
+
+0 82.93 0.3885 1.6725
+   85.26 0.3422
+1 85.78 0.3336 0.5565
+   84.74 0.3450
+2 86.55 0.3204 0.5567
+   87.09 0.3069
+3 87.06 0.3099 0.5564
+   86.72 0.3111
+4 87.20 0.3035 0.5563
+   82.42 0.3882
+5 87.22 0.3023 0.5563
+   87.32 0.2942
+Application 70426918 resources: utime ~46s, stime ~22s, Rss ~1864904, inblocks ~677358, outblocks ~1231
